@@ -1,0 +1,17 @@
+.PHONY: pkgs clean
+
+all: Category2.c Category3.c
+
+Category2.c:
+	futhark c --library Category2.fut
+
+Category3.c:
+	futhark c --library Category3.fut
+
+pkgs:
+	futhark pkg add github.com/diku-dk/cpprandom
+	futhark pkg add github.com/diku-dk/statistics
+	futhark pkg sync
+
+clean:
+	rm -f *.c *.h *.py *.o *.so
