@@ -68,12 +68,12 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   -- Bootstrap returns
   let (g',s): (rng,[nr_sim][n][t]f64) = resample g t r
 
-  -- Rhp in years
+  -- RHP in years
   let y = r64 t/days
 
   -- Measured moments
   let r_measured: []f64 = let f i = p v[0:n-1,0:i] in map f (iota l) |> returns
-  let m1_measured       = stats.mean r_measured
+  let m1_measured       = stats.mean   r_measured
   let sigma_measured    = stats.stddev r_measured
   let sigma_S_measured  = sigma_strs y r_measured
 
@@ -82,7 +82,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let o_scen: [nr_sim]f64 = let f = path_scen sigma_measured                  in map2 f s0 >-> p |> traverse s
   let o_strs: [nr_sim]f64 = let f = path_strs sigma_measured sigma_S_measured in map2 f s0 >-> p |> traverse s
 
-  -- market risk measurements (Annex II)
+  -- Market risk measurements (Annex II)
   let var = stats.quantile o_mrm 0.025
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
