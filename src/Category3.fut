@@ -72,7 +72,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let y = r64 t/days
 
   -- Measured moments
-  let r_measured: []f64 = let f i = p v[0:n-1,0:i] in map f (iota l) |> returns
+  let r_measured: []f64 = let f i = p v[0:n-1,0:i] in iota l |> map f |> returns
   let m1_measured       = stats.mean   r_measured
   let sigma_measured    = stats.stddev r_measured
   let sigma_S_measured  = sigma_strs y r_measured
