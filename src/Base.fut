@@ -7,8 +7,8 @@ let not (b: bool): bool = !b
 let fst (a,_) = a
 let snd (_,b) = b
 let cumsum: []f64 -> *[]f64 = scan (+) 0.0
-let indexed [t] (v: [t]f64) = iota t |> map r64 |> zip v
 let traverse = flip map
+let concat_1 x y = transpose x ++ transpose y |> transpose
 
 -- | Market Risk Measure, MRM (Annex II, 2)
 -- The VaR Equivalent Volatility (VEV) is assigned a market risk category (1-7)
