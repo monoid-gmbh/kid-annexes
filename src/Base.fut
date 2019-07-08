@@ -34,8 +34,9 @@ let rolling [t] (w: i32) (f: [w]f64 -> f64) (v: [t]f64): []f64 =
 
 -- | sigma for stress scenario (Annex IV, 10)
 let sigma_strs (t: f64) (v: []f64): f64 =
-  if t > 1 then rolling 63 stats.stddev_pop v |> (flip stats.quantile) 0.90 -- (Annex IV, 10 a)
-           else rolling 21 stats.stddev_pop v |> (flip stats.quantile) 0.99 -- (Annex IV, 10 a)
+  let quantile = flip stats.quantile
+   in if t > 1 then rolling 63 stats.stddev_pop v |> quantile 0.90 -- (Annex IV, 10 a)
+               else rolling 21 stats.stddev_pop v |> quantile 0.99 -- (Annex IV, 10 a)
 
 -- | Moments (Annex II, 22c; Annex IV, 11-13)
 let moments [t] (v: [t]f64): moments =
