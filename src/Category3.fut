@@ -9,6 +9,7 @@
 --
 
 import "lib/github.com/diku-dk/cpprandom/random"
+import "lib/github.com/diku-dk/sorts/radix_sort"
 import "lib/github.com/diku-dk/statistics/statistics"
 
 import "Base"
@@ -67,6 +68,8 @@ let quantiles o_strs o_scen =
   , stats.quantile o_scen 0.5  -- moderate
   , stats.quantile o_scen 0.9) -- favorable
 
+let sort = radix_sort_float_by_key fst f64.num_bits f64.get_bit
+
 -- | Category 3 simulations for MRM (Annex II)
 let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
 
@@ -96,9 +99,12 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let o_scen: [nr_sim]f64 = let f = path_scen sigma_measured                  in map2 f s0 >-> p |> traverse s
   let o_strs: [nr_sim]f64 = let f = path_strs sigma_measured sigma_S_measured in map2 f s0 >-> p |> traverse s
 
+  let o_scen_sorted: [nr_sim](f64,i32) = let xs = zip o_scen (iota nr_sim) in sort xs
+  let scen_unfav = o_scen_sorted[1000]
+  let (v_med,i_med) = o_scen_sorted[1000]
+
   -- Intermediate holding periods (Annex IV, 24)
-  let idx: i32 = 0 -- FIXME
-  let s_seed: [nr_sim][n][]f64 = replicate nr_sim s[idx,:,:255]
+  let s_seed: [nr_sim][n][]f64 = replicate nr_sim s[i_med,:,:255]
 
   let (g'',s'): (rng,[nr_sim][n][]f64) = resample g' t r
   let s'': [nr_sim][n][]f64 = map2 concat_1 s_seed s'
