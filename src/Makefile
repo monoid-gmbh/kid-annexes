@@ -2,10 +2,10 @@
 
 all: Category2.c Category3.c
 
-Category2.c:
+Category2.c: Base.fut Category2.fut
 	futhark c --library Category2.fut
 
-Category3.c:
+Category3.c: Base.fut Category3.fut
 	futhark c --library Category3.fut
 
 pkgs:
