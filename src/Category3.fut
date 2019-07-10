@@ -62,14 +62,6 @@ let value_at_risk v = stats.quantile v 0.025
 -- | Day count convention
 let days: f64 = 256.0
 
-let quantiles o_strs o_scen =
-  ( stats.quantile o_strs 0.1  -- stress
-  , stats.quantile o_scen 0.1  -- unfavorable
-  , stats.quantile o_scen 0.5  -- moderate
-  , stats.quantile o_scen 0.9) -- favorable
-
-let sort = radix_sort_float_by_key fst f64.num_bits f64.get_bit
-
 -- | Category 3 simulations for MRM (Annex II)
 let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
 
@@ -83,36 +75,61 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let y = r64 t/days
 
   -- Measured moments
-  let r_measured: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
-  let m1_measured       = stats.mean   r_measured
-  let sigma_measured    = stats.stddev r_measured
-  let sigma_S_measured  = sigma_strs y r_measured
+  let r_0: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
+  let m1         = stats.mean   r_0
+  let sigma      = stats.stddev r_0
+  let sigma_S    = sigma_strs y r_0
 
   -- Market risk measurements (Annex II)
-  let o_mrm: [nr_sim]f64 = let f = path_mrm m1_measured sigma_measured in map2 f s0 >-> p |> traverse s
+  let sT_mrm: [nr_sim]f64 = let f = path_mrm m1 sigma
+    in map2 f s0 >-> p |> traverse s
 
-  let var = value_at_risk o_mrm
+  let var = value_at_risk sT_mrm
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
-  -- Scenaios for full RHP (Annex IV, 11-13)
-  let o_scen: [nr_sim]f64 = let f = path_scen sigma_measured                  in map2 f s0 >-> p |> traverse s
-  let o_strs: [nr_sim]f64 = let f = path_strs sigma_measured sigma_S_measured in map2 f s0 >-> p |> traverse s
+  -- Scenaios full RHP (Annex IV, 11-13)
+  let sT_scen: [nr_sim](f64,i32) = let f = path_scen sigma
+    in map2 f s0 >-> p |> traverse s |> sort_with_index
 
-  let o_scen_sorted: [nr_sim](f64,i32) = let xs = zip o_scen (iota nr_sim) in sort xs
-  let scen_unfav = o_scen_sorted[1000]
-  let (v_med,i_med) = o_scen_sorted[1000]
+  let sT_strs: [nr_sim](f64,i32) = let f = path_strs sigma sigma_S
+    in map2 f s0 >-> p |> traverse s |> sort_with_index
+
+  let (strs,idx_strs) = sT_strs[1000]
+  let (ufa,idx_ufa)   = sT_scen[1000]
+  let (med,idx_med)   = sT_scen[5000]
+  let (fav,idx_fav)   = sT_scen[9000]
+
+  let scen_full_rhp = (strs,ufa,med,fav)
 
   -- Intermediate holding periods (Annex IV, 24)
-  let s_seed: [nr_sim][n][]f64 = replicate nr_sim s[i_med,:,:255]
+  let intermediate_holding_period d =
 
-  let (g'',s'): (rng,[nr_sim][n][]f64) = resample g' t r
-  let s'': [nr_sim][n][]f64 = map2 concat_1 s_seed s'
+    let s_seed: [nr_sim][n][]f64 = replicate nr_sim s[idx_strs,:,:d]
+    let s_seed2: [nr_sim][n][]f64 = replicate nr_sim s[idx_ufa,:,:d]
+    let s_seed3: [nr_sim][n][]f64 = replicate nr_sim s[idx_med,:,:d]
+    let s_seed4: [nr_sim][n][]f64 = replicate nr_sim s[idx_fav,:,:d]
 
-  let o_scen': [nr_sim]f64 = let f = path_scen sigma_measured                  in map2 f s0 >-> p |> traverse s''
-  let o_strs': [nr_sim]f64 = let f = path_strs sigma_measured sigma_S_measured in map2 f s0 >-> p |> traverse s''
+    let (g'',s'): (rng,[nr_sim][n][]f64) = resample g' t r
+    let s'': [nr_sim][n][]f64 = map2 concat_1 s_seed s'
 
-   in (g''
+    let sT_scen': [nr_sim]f64 = let f = path_scen sigma
+      in map2 f s0 >-> p |> traverse s'' |> sort
+
+    let sT_strs': [nr_sim]f64 = let f = path_strs sigma sigma_S
+      in map2 f s0 >-> p |> traverse s'' |> sort
+
+    let strs'= sT_strs'[1000]
+    let ufa' = sT_scen'[1000]
+    let med' = sT_scen'[5000]
+    let fav' = sT_scen'[9000]
+
+     in (g'', (strs',ufa',med',fav'))
+
+  let (g'', scen_one_year)  = intermediate_holding_period 255
+  let (g''', scen_rhp_half) = intermediate_holding_period 265
+
+   in (g'''
      , var, vev, mrm
-     , [ quantiles o_strs o_scen, quantiles o_strs' o_scen' ]
+     , [ scen_full_rhp, scen_rhp_half, scen_one_year ]
      )
