@@ -85,19 +85,18 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   -- Measured moments
   let (m1,sigma,sigma_S) = measured_moments p v y
 
+  let simulate f = map2 f s0 >-> p |> traverse s
+
   -- Market risk measurements (Annex II)
-  let sT_mrm: [nr_sim]f64 = let f = path_mrm m1 sigma
-    in map2 f s0 >-> p |> traverse s |> sort
+  let sT_mrm: [nr_sim]f64 = path_mrm m1 sigma |> simulate |> sort
 
   let var = percentile_2_5 sT_mrm
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
   -- Scenaios full RHP (Annex IV, 11-13)
-  let simulate f = map2 f s0 >-> p |> traverse s |> sort_with_index
-
-  let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate
-  let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate
+  let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate |> sort_with_index
+  let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate |> sort_with_index
 
   let (str,idx_str) = percentile_10 sT_strs -- TODO: depends on t
   let (ufa,idx_ufa) = percentile_10 sT_scen
@@ -107,7 +106,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
 
   -- Intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period g' d =
-    let resimulate_ihp gx idx f h =
+    let simulate_ihp gx idx f h =
 
       -- build seed paths (up to d)
       let seed: [nr_intermed][n][]f64 = replicate nr_intermed s[idx,:,:d]
@@ -122,10 +121,10 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     let f_strs = path_strs sigma sigma_S
 
     let gs = split_rng 4 g'
-    let (g0,str) = resimulate_ihp gs[0] idx_str f_strs percentile_10 -- TODO: depends on t
-    let (g1,ufa) = resimulate_ihp gs[1] idx_ufa f_scen percentile_10
-    let (g2,med) = resimulate_ihp gs[2] idx_med f_scen percentile_50
-    let (g3,fav) = resimulate_ihp gs[3] idx_fav f_scen percentile_90
+    let (g0,str) = simulate_ihp gs[0] idx_str f_strs percentile_10 -- TODO: depends on t
+    let (g1,ufa) = simulate_ihp gs[1] idx_ufa f_scen percentile_10
+    let (g2,med) = simulate_ihp gs[2] idx_med f_scen percentile_50
+    let (g3,fav) = simulate_ihp gs[3] idx_fav f_scen percentile_90
      in (join_rng [g0,g1,g2,g3], (str,ufa,med,fav))
 
   let (gb, scen_one_year) = intermediate_holding_period ga 255
