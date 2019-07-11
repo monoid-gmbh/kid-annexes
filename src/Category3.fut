@@ -85,12 +85,11 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   -- Measured moments
   let (m1,sigma,sigma_S) = measured_moments p v y
 
+  -- Simulation
   let simulate f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let sT_mrm: [nr_sim]f64 = path_mrm m1 sigma |> simulate |> sort
-
-  let var = percentile_2_5 sT_mrm
+  let var = path_mrm m1 sigma |> simulate |> sort |> percentile_2_5
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
