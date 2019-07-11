@@ -1,19 +1,8 @@
-import "lib/github.com/diku-dk/sorts/radix_sort"
 import "lib/github.com/diku-dk/statistics/statistics"
 
+import "Prelude"
+
 module stats = mk_statistics f64
-
--- helper functions
-let not (b: bool): bool = !b
-let fst (a,_) = a
-let snd (_,b) = b
-let cumsum: []f64 -> *[]f64 = scan (+) 0.0
-let traverse = flip map
-let concat_1 x y = transpose x ++ transpose y |> transpose
-
-let sort_by f = radix_sort_float_by_key f f64.num_bits f64.get_bit
-let sort = sort_by id
-let sort_with_index [n] (v:[n]f64): [n](f64,i32) = iota n |> zip v |> sort_by fst
 
 -- | Market Risk Measure, MRM (Annex II, 2)
 -- The VaR Equivalent Volatility (VEV) is assigned a market risk category (1-7)
