@@ -22,10 +22,6 @@ type payoff   = [][]f64 -> f64
 -- | Log Returns (Annex II, 22a)
 let returns [n] (v: [n]f64): []f64 = map2 (/) (tail v) (init v) |> map f64.log
 
--- | Rolling window
-let rolling [t] (w: i32) (f: [w]f64 -> f64) (v: [t]f64): []f64 =
-  let x = iota t in zip x (map (+w) x) |> take (t-w) |> map (\(i,j) -> f v[i:j])
-
 -- | sigma for stress scenario (Annex IV, 10)
 let sigma_strs (t: f64) (v: []f64): f64 =
   let quantile = flip stats.quantile
