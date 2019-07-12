@@ -93,7 +93,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
-  -- Scenaios full RHP (Annex IV, 11-13)
+  -- Scenarios full RHP (Annex IV, 11-13)
   let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate |> sort_with_index
   let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate |> sort_with_index
 
@@ -103,7 +103,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let (fav,idx_fav) = percentile_90 sT_scen
   let scen_full_rhp = (str,ufa,med,fav)
 
-  -- Intermediate holding periods (Annex IV, 24)
+  -- Scenarios, intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period g' d =
     let simulate_ihp gx idx f h =
 
