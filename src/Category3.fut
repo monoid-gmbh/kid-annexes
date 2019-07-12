@@ -108,20 +108,18 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let intermediate_holding_period g' i =
 
     -- TODO: choose "good" paths as index
-    let simulate_ihp gx idx f q =
+    let simulate_ihp gx idx q f =
       let seed     = replicate nr_resim s[idx,:,:i]
       let (gy,sim) = resample gx (t-i) r
        in map2 concat_1 seed sim |> (flip simulate) f |> sort |> q |> \x -> (x,gy)
 
-    let path_scen' = path_scen sigma
-    let path_strs' = path_strs sigma sigma_S
     let gs = split_rng 4 g'
 
     let (scenarios_ihp, gs') = unzip
-      [ simulate_ihp gs[0] scenarios_rhp_idxs[0] path_strs' percentile_10 -- TODO: depends on t
-      , simulate_ihp gs[1] scenarios_rhp_idxs[1] path_scen' percentile_10
-      , simulate_ihp gs[2] scenarios_rhp_idxs[2] path_scen' percentile_50
-      , simulate_ihp gs[3] scenarios_rhp_idxs[3] path_scen' percentile_90
+      [ path_strs sigma sigma_S |> simulate_ihp gs[0] scenarios_rhp_idxs[0] percentile_10 -- TODO: depends on t
+      , path_scen sigma         |> simulate_ihp gs[1] scenarios_rhp_idxs[1] percentile_10
+      , path_scen sigma         |> simulate_ihp gs[2] scenarios_rhp_idxs[2] percentile_50
+      , path_scen sigma         |> simulate_ihp gs[3] scenarios_rhp_idxs[3] percentile_90
       ]
 
      in (join_rng gs', tuple4 scenarios_ihp)
