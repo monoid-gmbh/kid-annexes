@@ -86,16 +86,16 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let (m1,sigma,sigma_S) = measured_moments p v y
 
   -- Simulation
-  let simulate f = map2 f s0 >-> p |> traverse s
+  let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate |> sort |> percentile_2_5
+  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile_2_5
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
-  -- Scenarios full RHP (Annex IV, 11-13)
-  let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate |> sort_with_index
-  let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate |> sort_with_index
+  -- Scenarios, full RHP (Annex IV, 11-13)
+  let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate s |> sort_with_index
+  let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate s |> sort_with_index
 
   let (str,idx_str) = percentile_10 sT_strs -- TODO: depends on t
   let (ufa,idx_ufa) = percentile_10 sT_scen
@@ -113,8 +113,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
       -- bootstrap (from d to rhp)
       let t' = t-d
       let (gy,sim): (rng,[nr_intermed][n][t']f64) = resample gx t' r
-      let s': [nr_intermed][n][t]f64              = map2 concat_1 seed sim
-       in map2 f s0 >-> p |> traverse s' |> sort |> h |> \x -> (gy,x)
+       in map2 concat_1 seed sim |> (flip simulate) f |> sort |> h |> \x -> (gy,x)
 
     let f_scen = path_scen sigma
     let f_strs = path_strs sigma sigma_S
