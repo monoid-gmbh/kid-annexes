@@ -24,7 +24,7 @@ let split_rng = minstd_rand.split_rng
 
 -- | Number of simulations (Annex II, 19)
 let nr_sim: i32      = 10000
-let nr_intermed: i32 = 3333
+let nr_resim: i32 = 3333
 let percentile_10 x  = x[1000]
 let percentile_50 x  = x[5000]
 let percentile_90 x  = x[9000]
@@ -97,38 +97,40 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let sT_scen: [nr_sim](f64,i32) = path_scen sigma |> simulate s |> sort_with_index
   let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate s |> sort_with_index
 
-  let (str,idx_str) = percentile_10 sT_strs -- TODO: depends on t
-  let (ufa,idx_ufa) = percentile_10 sT_scen
-  let (med,idx_med) = percentile_50 sT_scen
-  let (fav,idx_fav) = percentile_90 sT_scen
-  let scen_full_rhp = (str,ufa,med,fav)
+  let (scenarios_rhp, scenarios_rhp_idxs) = unzip
+    [ percentile_10 sT_strs -- TODO: depends on t
+    , percentile_10 sT_scen
+    , percentile_50 sT_scen
+    , percentile_90 sT_scen
+    ]
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
-  let intermediate_holding_period g' d =
+  let intermediate_holding_period g' i =
     let simulate_ihp gx idx f h =
+      let seed     = replicate nr_resim s[idx,:,:i]
+      let (gy,sim) = let d = t-i in resample gx d r
+       in map2 concat_1 seed sim |> (flip simulate) f |> sort |> h |> \x -> (x,gy)
 
-      -- build seed paths (up to d)
-      let seed: [nr_intermed][n][]f64 = replicate nr_intermed s[idx,:,:d]
+    let p_scen = path_scen sigma
+    let p_strs = path_strs sigma sigma_S
+    let gs     = split_rng 4 g'
 
-      -- bootstrap (from d to rhp)
-      let t' = t-d
-      let (gy,sim): (rng,[nr_intermed][n][t']f64) = resample gx t' r
-       in map2 concat_1 seed sim |> (flip simulate) f |> sort |> h |> \x -> (gy,x)
+    let (scenarios_ihp, gs') = unzip
+      [ simulate_ihp gs[0] scenarios_rhp_idxs[0] p_strs percentile_10 -- TODO: depends on t
+      , simulate_ihp gs[1] scenarios_rhp_idxs[1] p_scen percentile_10
+      , simulate_ihp gs[2] scenarios_rhp_idxs[2] p_scen percentile_50
+      , simulate_ihp gs[3] scenarios_rhp_idxs[3] p_scen percentile_90
+      ]
 
-    let f_scen = path_scen sigma
-    let f_strs = path_strs sigma sigma_S
+     in (join_rng gs', tuple4 scenarios_ihp)
 
-    let gs = split_rng 4 g'
-    let (g0,str) = simulate_ihp gs[0] idx_str f_strs percentile_10 -- TODO: depends on t
-    let (g1,ufa) = simulate_ihp gs[1] idx_ufa f_scen percentile_10
-    let (g2,med) = simulate_ihp gs[2] idx_med f_scen percentile_50
-    let (g3,fav) = simulate_ihp gs[3] idx_fav f_scen percentile_90
-     in (join_rng [g0,g1,g2,g3], (str,ufa,med,fav))
+  let gs = split_rng 2 g
+  let (gs', ihps) = unzip
+    [ intermediate_holding_period gs[0] 255
+    , intermediate_holding_period gs[1] 265
+    ]
 
-  let (gb, scen_one_year) = intermediate_holding_period ga 255
-  let (gc, scen_rhp_half) = intermediate_holding_period gb 265
-
-   in (gc
+   in (join_rng gs'
      , var, vev, mrm
-     , [scen_full_rhp, scen_rhp_half, scen_one_year]
+     , [tuple4 scenarios_rhp] ++ ihps
      )
