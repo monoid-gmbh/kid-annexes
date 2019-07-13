@@ -106,23 +106,33 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period g' i =
-
-    -- TODO: choose "good" paths as index
-    let simulate_ihp gx idx q f =
-      let seed     = replicate nr_resim s[idx,:,:i]
-      let (gy,sim) = resample gx (t-i) r
-       in map2 concat_1 seed sim |> (flip simulate) f |> sort |> q |> \x -> (x,gy)
-
     let gs = split_rng 4 g'
 
-    let (scenarios_ihp, gs') = unzip
-      [ path_strs sigma sigma_S |> simulate_ihp gs[0] scenarios_rhp_idxs[0] percentile_10 -- TODO: depends on t
-      , path_scen sigma         |> simulate_ihp gs[1] scenarios_rhp_idxs[1] percentile_10
-      , path_scen sigma         |> simulate_ihp gs[2] scenarios_rhp_idxs[2] percentile_50
-      , path_scen sigma         |> simulate_ihp gs[3] scenarios_rhp_idxs[3] percentile_90
+    -- Resample for each scenario
+    -- TODO: choose "good" paths as index for seed
+    let seed0 = replicate nr_resim s[scenarios_rhp_idxs[0],:,:i]
+    let seed1 = replicate nr_resim s[scenarios_rhp_idxs[1],:,:i]
+    let seed2 = replicate nr_resim s[scenarios_rhp_idxs[2],:,:i]
+    let seed3 = replicate nr_resim s[scenarios_rhp_idxs[3],:,:i]
+
+    let (gs0,sim0) = resample gs[0] (t-i) r
+    let (gs1,sim1) = resample gs[1] (t-i) r
+    let (gs2,sim2) = resample gs[2] (t-i) r
+    let (gs3,sim3) = resample gs[3] (t-i) r
+
+    let x0 = map2 concat_1 seed0 sim0
+    let x1 = map2 concat_1 seed1 sim1
+    let x2 = map2 concat_1 seed2 sim2
+    let x3 = map2 concat_1 seed3 sim3
+
+    let scenarios_ihp =
+      [ path_strs sigma sigma_S |> simulate x0 |> sort |> percentile_10 -- TODO: depends on t
+      , path_scen sigma         |> simulate x1 |> sort |> percentile_10
+      , path_scen sigma         |> simulate x2 |> sort |> percentile_50
+      , path_scen sigma         |> simulate x3 |> sort |> percentile_90
       ]
 
-     in (join_rng gs', tuple4 scenarios_ihp)
+     in (join_rng [gs0,gs1,gs2,gs3], tuple4 scenarios_ihp)
 
   let gs = split_rng 2 g
   let (gs', scenarios_ihps) = unzip
