@@ -108,9 +108,9 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let intermediate_holding_period h i: (rng,scenario) =
     let h0 = split_rng 4 h
 
-    -- Resample for each scenario
+    -- Get seed and resample for each scenario
     -- TODO: choose "good" paths as index for seed
-    let seed     = map (\x -> replicate nr_resim s[x,:,:i]) scenarios_rhp_idxs
+    let seed     = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
     let (h1,sim) = resample (t-i) r |> traverse h0 |> unzip
     let xs       = map2 concat_1 seed sim
 
@@ -123,14 +123,15 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
 
      in (join_rng h1, scenarios_ihp)
 
-  let g1 = split_rng 2 g0
-  let (g2, scenarios_ihps) = unzip
-    [ intermediate_holding_period g1[0] 255
-    , intermediate_holding_period g1[1] 265
-    ]
+   in if (y > 1)
+    then
+      let (g2, scenarios_ihps) = if (y > 3)
+        then let g1 = split_rng 2 g0 in unzip
+          [ intermediate_holding_period g1[0] 255 -- 1 year
+          , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i32) -- half rhp
+          ]
+        else let g1 = split_rng 2 g0 in unzip
+          [ intermediate_holding_period g1[0] 255 ] -- 1 year
+      in (join_rng g2,var,vev,mrm,[tuple4 scenarios_rhp] ++ scenarios_ihps)
 
-   -- Results
-   in (join_rng g2
-     , var, vev, mrm
-     , [tuple4 scenarios_rhp] ++ scenarios_ihps
-     )
+    else (g0,var,vev,mrm,[tuple4 scenarios_rhp])
