@@ -37,7 +37,7 @@ let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
    in (join_rng gs,ys)
 
 -- | Resample
-let resample [n] [s] (g: rng) (t: i32) (r: [n][s]f64): (rng,[nr_sim][n][t]f64) =
+let resample [n] [s] (t: i32) (r: [n][s]f64) (g: rng): (rng,[nr_sim][n][t]f64) =
   let f = bootstrap_index_vector s t
   let (gs,ix) = split_rng nr_sim g |> map f |> unzip
    in (join_rng gs, tabulate_3d nr_sim n t (\x y z -> let i = ix[x,z] in r[y,i]))
@@ -77,7 +77,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let r : [n][]f64 = map returns v
 
   -- Bootstrap returns
-  let (ga,s): (rng,[nr_sim][n][t]f64) = resample g t r
+  let (g0,s): (rng,[nr_sim][n][t]f64) = resample t r g
 
   -- RHP in years
   let y = r64 t/days
@@ -105,14 +105,14 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     ]
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
-  let intermediate_holding_period g' i: (rng,scenario) =
-    let gs = split_rng 4 g'
+  let intermediate_holding_period h i: (rng,scenario) =
+    let h0 = split_rng 4 h
 
     -- Resample for each scenario
     -- TODO: choose "good" paths as index for seed
-    let seed      = map (\x -> replicate nr_resim s[x,:,:i]) scenarios_rhp_idxs
-    let (gs',sim) = map (\x -> resample x (t-i) r) gs |> unzip
-    let xs        = map2 concat_1 seed sim
+    let seed     = map (\x -> replicate nr_resim s[x,:,:i]) scenarios_rhp_idxs
+    let (h1,sim) = resample (t-i) r |> traverse h0 |> unzip
+    let xs       = map2 concat_1 seed sim
 
     let scenarios_ihp = tuple4
       [ path_strs sigma sigma_S |> simulate xs[0] |> sort |> percentile_10 -- TODO: depends on t
@@ -121,16 +121,16 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
       , path_scen sigma |> simulate xs[3] |> sort |> percentile_90
       ]
 
-     in (join_rng gs', scenarios_ihp)
+     in (join_rng h1, scenarios_ihp)
 
-  let gs = split_rng 2 g
-  let (gs', scenarios_ihps) = unzip
-    [ intermediate_holding_period gs[0] 255
-    , intermediate_holding_period gs[1] 265
+  let g1 = split_rng 2 g0
+  let (g2, scenarios_ihps) = unzip
+    [ intermediate_holding_period g1[0] 255
+    , intermediate_holding_period g1[1] 265
     ]
 
    -- Results
-   in (join_rng gs'
+   in (join_rng g2
      , var, vev, mrm
      , [tuple4 scenarios_rhp] ++ scenarios_ihps
      )
