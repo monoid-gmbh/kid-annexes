@@ -24,11 +24,12 @@ let split_rng = minstd_rand.split_rng
 
 -- | Number of simulations (Annex II, 19)
 let nr_sim: i32      = 10000
-let nr_resim: i32 = 3333
+let nr_resim: i32    = 3333
 let percentile_10 x  = x[1000]
 let percentile_50 x  = x[5000]
 let percentile_90 x  = x[9000]
-let percentile_2_5 x = x[250]
+-- let precentile_975 x = x[9750]
+let precentile_975 x = x[250]
 
 -- | Bootstrap indices
 let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
@@ -44,7 +45,7 @@ let resample [n] [s] (t: i32) (r: [n][s]f64) (g: rng): (rng,[nr_sim][n][t]f64) =
 
 -- | Construct a path starting at s0
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
-  let s = cumsum r in tabulate t (\i -> f (r64 i) s[i]) |> map f64.exp |> map (*s0)
+  let s = cumsum r in tabulate t (\i -> f s[i] (r64 i)) |> map f64.exp |> map (*s0)
 
 -- Returns are corrected with the measured expectation (Annex II, 22c)
 let path_mrm [t] (m1: f64) (sigma: f64) (s0: f64) (r: [t]f64): [t]f64 =
@@ -83,13 +84,14 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let y = r64 t/days
 
   -- Measured moments
-  let (m1,sigma,sigma_S) = measured_moments p v y
+  -- TODO: let (m1,sigma,sigma_S) = measured_moments p v y
+  let (m1,sigma,sigma_S) = let r_obs = r[0] in (stats.mean r_obs, stats.stddev r_obs, sigma_strs y r_obs)
 
   -- Simulation
   let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile_2_5
+  let var = path_mrm m1 sigma |> simulate s |> sort |> precentile_975
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
@@ -127,11 +129,11 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     then
       let (g2, scenarios_ihps) = if (y > 3)
         then let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] 255 -- 1 year
+          [ intermediate_holding_period g1[0] (f64.to_i32 days)            -- 1 year
           , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i32) -- half rhp
           ]
         else let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] 255 ] -- 1 year
+          [ intermediate_holding_period g1[0] (f64.to_i32 days) ] -- 1 year
       in (join_rng g2,var,vev,mrm,[tuple4 scenarios_rhp] ++ scenarios_ihps)
 
     else (g0,var,vev,mrm,[tuple4 scenarios_rhp])
