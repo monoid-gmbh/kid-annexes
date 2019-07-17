@@ -25,11 +25,10 @@ let split_rng = minstd_rand.split_rng
 -- | Number of simulations (Annex II, 19)
 let nr_sim: i32      = 10000
 let nr_resim: i32    = 3333
+let precentile_025 x = x[250]
 let percentile_10 x  = x[1000]
 let percentile_50 x  = x[5000]
 let percentile_90 x  = x[9000]
--- let precentile_975 x = x[9750]
-let precentile_975 x = x[250]
 
 -- | Bootstrap indices
 let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
@@ -91,7 +90,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate s |> sort |> precentile_975
+  let var = path_mrm m1 sigma |> simulate s |> sort |> precentile_025
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
