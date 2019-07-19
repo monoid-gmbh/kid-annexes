@@ -25,10 +25,10 @@ let split_rng = minstd_rand.split_rng
 -- | Number of simulations (Annex II, 19)
 let nr_sim: i32      = 10000
 let nr_resim: i32    = 3333
-let precentile_025 x = x[250]
-let percentile_10 x  = x[1000]
-let percentile_50 x  = x[5000]
-let percentile_90 x  = x[9000]
+let percentile_025 [l] (x: [l]f64): f64 = let i = 0.025 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
+let percentile_10  'a [l] (x: [l]a): a = let i = 0.1 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
+let percentile_50  'a [l] (x: [l]a): a = let i = 0.5 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
+let percentile_90  'a [l] (x: [l]a): a = let i = 0.9 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
 
 -- | Bootstrap indices
 let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
@@ -37,10 +37,10 @@ let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
    in (join_rng gs,ys)
 
 -- | Resample
-let resample [n] [s] (t: i32) (r: [n][s]f64) (g: rng): (rng,[nr_sim][n][t]f64) =
+let resample [n] [s] (t: i32) (l: i32) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f64) =
   let f = bootstrap_index_vector s t
-  let (gs,ix) = split_rng nr_sim g |> map f |> unzip
-   in (join_rng gs, tabulate_3d nr_sim n t (\x y z -> let i = ix[x,z] in r[y,i]))
+  let (gs,ix) = split_rng l g |> map f |> unzip
+   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in r[y,i]))
 
 -- | Construct a path starting at s0
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
@@ -77,7 +77,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let r : [n][]f64 = map returns v
 
   -- Bootstrap returns
-  let (g0,s): (rng,[nr_sim][n][t]f64) = resample t r g
+  let (g0,s): (rng,[nr_sim][n][t]f64) = resample t nr_sim r g
 
   -- RHP in years
   let y = r64 t/days
@@ -90,7 +90,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate s |> sort |> precentile_025
+  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile_025
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
@@ -111,9 +111,9 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
 
     -- Get seed and resample for each scenario
     -- TODO: choose "good" paths as index for seed
-    let seed     = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
-    let (h1,sim) = resample (t-i) r |> traverse h0 |> unzip
-    let xs       = map2 concat_1 seed sim
+    let seed: [4][nr_resim][n][]f64    = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
+    let (h1,sim): ([]rng, [4][nr_resim][n][]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
+    let xs       = map2 (map2 concat_1) seed sim
 
     let scenarios_ihp = tuple4
       [ path_strs sigma sigma_S |> simulate xs[0] |> sort |> percentile_10 -- TODO: depends on t

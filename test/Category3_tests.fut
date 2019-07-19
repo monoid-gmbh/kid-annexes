@@ -17,6 +17,12 @@ entry test_category3 (v: []f64) =
   let sia = 10000.0
 
   let w: [1][]f64 = [v]
-  let (g0, var, vev, mrm, sce) = category3 rng sample_payoff 100 w
+  let (g0, var, vev, mrm, sce) = category3 rng sample_payoff (5*256) w
   let (fav, mod, ufav, strs) = sce[0]
-   in (var, vev, mrm, length sce, sia*strs, sia*ufav, sia*mod, sia*fav)
+  let (fav1, mod1, ufav1, strs1) = sce[1]
+  let (fav2, mod2, ufav2, strs2) = sce[2]
+   in (var, vev, mrm, length sce
+    , sia*strs, sia*ufav, sia*mod, sia*fav
+    , sia*strs1, sia*ufav1, sia*mod1, sia*fav1
+    , sia*strs2, sia*ufav2, sia*mod2, sia*fav2
+    )
