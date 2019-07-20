@@ -15,4 +15,4 @@ let sort_with_index [n] (v:[n]f64): [n](f64,i32) = iota n |> zip v |> sort_by fs
 
 -- | Rolling window
 let rolling [t] (w: i32) (f: [w]f64 -> f64) (v: [t]f64): []f64 =
-  let x = iota t in zip x (map (+w) x) |> take (t-w) |> map (\(i,j) -> f v[i:j])
+  let x = iota t in zip x (map (+w) x) |> take (t-w) |> map (\(i,j) -> unsafe (f v[i:j]))

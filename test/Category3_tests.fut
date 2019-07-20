@@ -16,7 +16,7 @@ entry test_category3 (v: []f64) =
   let rng = minstd_rand.rng_from_seed [123]
   let sia = 10000.0
 
-  let w: [1][]f64 = [v]
+  let w: [10][]f64 = [v,v,v,v,v,v,v,v,v,v]
   let (g0, var, vev, mrm, sce) = category3 rng sample_payoff (5*256) w
   let (fav, mod, ufav, strs) = sce[0]
   let (fav1, mod1, ufav1, strs1) = sce[1]
