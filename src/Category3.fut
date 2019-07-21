@@ -8,35 +8,20 @@
 --    * Performance scenarios for intermediate holding periods
 --
 
-import "lib/github.com/diku-dk/cpprandom/random"
-import "lib/github.com/diku-dk/sorts/radix_sort"
-import "lib/github.com/diku-dk/statistics/statistics"
-
 import "Base"
 
 module stats = mk_statistics f64
 module dist  = uniform_int_distribution i32 minstd_rand
 
-type rng = minstd_rand.rng
-
-let join_rng  = minstd_rand.join_rng
-let split_rng = minstd_rand.split_rng
-
--- | Number of simulations (Annex II, 19)
-let nr_sim: i32      = 10000
-let nr_resim: i32    = 3333
-
 -- | Bootstrap indices
 let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
-  let f = dist.rand (0,s-1)
-  let (gs,ys) = split_rng t g |> map f |> unzip
+  let (gs,ys) = let f = dist.rand (0,s-1) in split_rng t g |> map f |> unzip
    in (join_rng gs,ys)
 
 -- | Resample
 let resample [n] [s] (t: i32) (l: i32) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f64) =
-  let f = bootstrap_index_vector s t
-  let (gs,ix) = split_rng l g |> map f |> unzip
-   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in unsafe (r[y,i])))
+  let (gs,ix) = let f = bootstrap_index_vector s t in split_rng l g |> map f |> unzip
+   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in unsafe r[y,i]))
 
 -- | Construct a path starting at s0
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
@@ -58,9 +43,6 @@ let path_strs [t] (sigma: f64) (sigma_S: f64) (s0: f64) (r: [t]f64): [t]f64 =
 let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
--- | Day count convention
-let days: f64 = 256.0
-
 -- TODO: ok?
 let measured_moments [n] [l] (p: payoff) (v: [n][l]f64) (y: f64) =
   let r_obs: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
@@ -72,8 +54,14 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let s0: [n]f64   = transpose v |> head
   let r : [n][]f64 = map returns v
 
+  -- Number of simulations (Annex II, 19)
+  let nr_sim: i32 = 10000
+
   -- Bootstrap returns
   let (g0,s): (rng,[nr_sim][n][t]f64) = resample t nr_sim r g
+
+  -- Day count convention
+  let days: f64 = 256.0
 
   -- RHP in years
   let y = r64 t/days
@@ -86,7 +74,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile 2.5
+  let var = path_mrm m1 sigma |> simulate s |> percentile 2.5
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
@@ -95,27 +83,27 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate s |> sort_with_index
 
   let (scenarios_rhp, scenarios_rhp_idxs) = unzip
-    [ percentile 10 sT_strs -- TODO: depends on t
-    , percentile 10 sT_scen
-    , percentile 50 sT_scen
-    , percentile 90 sT_scen
+    [ percentile_sorted 10 sT_strs -- TODO: depends on t
+    , percentile_sorted 10 sT_scen
+    , percentile_sorted 50 sT_scen
+    , percentile_sorted 90 sT_scen
     ]
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period h i: (rng,scenario) =
+    let nr_resim: i32 = 3333
     let h0 = split_rng 4 h
 
-    -- Get seed and resample for each scenario
-    -- TODO: choose "good" paths as index for seed
-    let seed: [4][nr_resim][n][]f64    = replicate nr_resim <-< (\x -> unsafe (s[x,:,:i])) |> traverse scenarios_rhp_idxs
+    -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
+    let seed: [4][nr_resim][n][]f64 = replicate nr_resim <-< (\x -> unsafe s[x,:,:i]) |> traverse scenarios_rhp_idxs
     let (h1,sim): ([]rng, [4][nr_resim][n][]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
-    let xs       = map2 (map2 concat_1) seed sim
+    let xs = let f = map2 concat_1 in map2 f seed sim
 
     let scenarios_ihp = tuple4
-      [ path_strs sigma sigma_S |> simulate xs[0] |> sort |> percentile 10 -- TODO: depends on t
-      , path_scen sigma |> simulate xs[1] |> sort |> percentile 10
-      , path_scen sigma |> simulate xs[2] |> sort |> percentile 50
-      , path_scen sigma |> simulate xs[3] |> sort |> percentile 90
+      [ path_strs sigma sigma_S |> simulate xs[0] |> percentile 10 -- TODO: depends on t
+      , path_scen sigma |> simulate xs[1] |> percentile 10
+      , path_scen sigma |> simulate xs[2] |> percentile 50
+      , path_scen sigma |> simulate xs[3] |> percentile 90
       ]
 
      in (join_rng h1, scenarios_ihp)
