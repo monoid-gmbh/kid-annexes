@@ -25,11 +25,6 @@ let split_rng = minstd_rand.split_rng
 -- | Number of simulations (Annex II, 19)
 let nr_sim: i32      = 10000
 let nr_resim: i32    = 3333
-let percentile_025 [l] (x: [l]f64): f64 = let i = 0.025 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
-
-let percentile_10  'a [l] (x: [l]a): a = let i = 0.1 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
-let percentile_50  'a [l] (x: [l]a): a = let i = 0.5 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
-let percentile_90  'a [l] (x: [l]a): a = let i = 0.9 * (r64 l) in f64.ceil i |> f64.to_i32 |> \j -> x[j]
 
 -- | Bootstrap indices
 let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
@@ -91,7 +86,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let simulate s f = map2 f s0 >-> p |> traverse s
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile_025
+  let var = path_mrm m1 sigma |> simulate s |> sort |> percentile 2.5
   let vev = var_equivalent_volatility var y
   let mrm = market_risk_measure vev
 
@@ -100,10 +95,10 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
   let sT_strs: [nr_sim](f64,i32) = path_strs sigma sigma_S |> simulate s |> sort_with_index
 
   let (scenarios_rhp, scenarios_rhp_idxs) = unzip
-    [ percentile_10 sT_strs -- TODO: depends on t
-    , percentile_10 sT_scen
-    , percentile_50 sT_scen
-    , percentile_90 sT_scen
+    [ percentile 10 sT_strs -- TODO: depends on t
+    , percentile 10 sT_scen
+    , percentile 50 sT_scen
+    , percentile 90 sT_scen
     ]
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
@@ -117,10 +112,10 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     let xs       = map2 (map2 concat_1) seed sim
 
     let scenarios_ihp = tuple4
-      [ path_strs sigma sigma_S |> simulate xs[0] |> sort |> percentile_10 -- TODO: depends on t
-      , path_scen sigma |> simulate xs[1] |> sort |> percentile_10
-      , path_scen sigma |> simulate xs[2] |> sort |> percentile_50
-      , path_scen sigma |> simulate xs[3] |> sort |> percentile_90
+      [ path_strs sigma sigma_S |> simulate xs[0] |> sort |> percentile 10 -- TODO: depends on t
+      , path_scen sigma |> simulate xs[1] |> sort |> percentile 10
+      , path_scen sigma |> simulate xs[2] |> sort |> percentile 50
+      , path_scen sigma |> simulate xs[3] |> sort |> percentile 90
       ]
 
      in (join_rng h1, scenarios_ihp)
