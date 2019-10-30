@@ -27,15 +27,15 @@ let resample [n] [s] (t: i32) (l: i32) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f6
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
   let s = cumsum r in tabulate t (\i -> f s[i] (r64 i)) |> map f64.exp |> map (*s0)
 
--- Returns are corrected with the measured expectation (Annex II, 22c)
+-- | Returns are corrected with the measured expectation (Annex II, 22c)
 let path_mrm [t] (m1: f64) (sigma: f64) (s0: f64) (r: [t]f64): [t]f64 =
   let f x k = x - k*m1 - k*0.5*sigma**2 in path r s0 f
 
--- Construct the scenario simulation path (Annex IV, 12)
+-- | Construct the scenario simulation path (Annex IV, 12)
 let path_scen [t] (sigma: f64) (s0: f64) (r: [t]f64): [t]f64 =
   let f x k = x - k*0.5*sigma**2 in path r s0 f
 
--- Construct the stress scenario simulation path (Annex IV, 13)
+-- | Construct the stress scenario simulation path (Annex IV, 13)
 let path_strs [t] (sigma: f64) (sigma_S: f64) (s0: f64) (r: [t]f64): [t]f64 =
   let f x k = sigma_S/sigma*x - k*0.5*sigma_S**2 in path r s0 f
 
