@@ -17,16 +17,16 @@ let market_risk_measure (v:f64): i32 =
 
 type moments  = (i32,f64,f64,f64,f64,f64,f64,f64)
 type scenario = (f64,f64,f64,f64)
-type payoff   = [][]f64 -> f64
 
 -- | Log Returns (Annex II, 22a)
-let returns [n] (v: [n]f64): []f64 = map2 (/) (tail v) (init v) |> map f64.log
+-- let returns [n] (v: [n]f64): [n-1]f64 = map2 (/) (tail v) (init v) |> map f64.log
+let returns [n] [m] (v: [n]f64): [m]f64 = map2 (/) (tail v :> [m]f64) (init v :> [m]f64) |> map f64.log
 
 -- | sigma for stress scenario (Annex IV, 10)
-let sigma_strs (t: f64) (v: []f64): f64 =
-  let quantile = flip stats.quantile
-   in if t > 1 then rolling 63 stats.stddev_pop v |> quantile 0.90 -- (Annex IV, 10 a)
-               else rolling 21 stats.stddev_pop v |> quantile 0.99 -- (Annex IV, 10 a)
+let sigma_strs [n] (t: f64) (v: [n]f64): f64 =
+  let rolling (w: i32) (v: [n]f64): []f64 = iota (n-w) |> map (\i -> stats.stddev_pop v[i:i+w])
+   in if t > 1 then stats.quantile (rolling 63 v) 0.90 -- (Annex IV, 10 a)
+               else stats.quantile (rolling 21 v) 0.99 -- (Annex IV, 10 a)
 
 -- | Moments (Annex II, 22c; Annex IV, 11-13)
 let moments [t] (v: [t]f64): moments =

@@ -43,16 +43,15 @@ let path_strs [t] (sigma: f64) (sigma_S: f64) (s0: f64) (r: [t]f64): [t]f64 =
 let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
--- TODO: ok?
-let measured_moments [n] [l] (p: payoff) (v: [n][l]f64) (y: f64) =
-  let r_obs: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
-   in (stats.mean r_obs, stats.stddev r_obs, sigma_strs y r_obs)
+--let measured_moments [n] [l] (p: payoff) (v: [n][l]f64) (y: f64) =
+--  let r_obs: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
+--   in (stats.mean r_obs, stats.stddev r_obs, sigma_strs y r_obs)
 
 -- | Category 3 simulations for MRM (Annex II)
-let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
+let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
 
   let s0: [n]f64   = transpose v |> head
-  let r : [n][]f64 = map returns v
+  let r : [n][l]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
   let nr_sim: i32 = 10000
@@ -86,8 +85,7 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     [ percentile_sorted 10 sT_strs -- TODO: depends on t
     , percentile_sorted 10 sT_scen
     , percentile_sorted 50 sT_scen
-    , percentile_sorted 90 sT_scen
-    ]
+    , percentile_sorted 90 sT_scen ]
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period h i: (rng,scenario) =
@@ -95,28 +93,26 @@ let category3 [n] [l] (g: rng) (p: payoff) (t: i32) (v: [n][l]f64): (rng,f64,f64
     let h0 = split_rng 4 h
 
     -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
-    let seed: [4][nr_resim][n][]f64 = replicate nr_resim <-< (\x -> unsafe s[x,:,:i]) |> traverse scenarios_rhp_idxs
-    let (h1,sim): ([]rng, [4][nr_resim][n][]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
-    let xs = let f = map2 concat_1 in map2 f seed sim
+    let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> unsafe s[x,:,:i]) |> traverse scenarios_rhp_idxs
+    let rem = t-i
+    let (h1,sim): ([]rng, [4][nr_resim][n][rem]f64) = resample rem nr_resim r |> traverse h0 |> unzip
+    let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
 
     let scenarios_ihp = tuple4
       [ path_strs sigma sigma_S |> simulate xs[0] |> percentile 10 -- TODO: depends on t
       , path_scen sigma |> simulate xs[1] |> percentile 10
       , path_scen sigma |> simulate xs[2] |> percentile 50
-      , path_scen sigma |> simulate xs[3] |> percentile 90
-      ]
-
+      , path_scen sigma |> simulate xs[3] |> percentile 90 ]
      in (join_rng h1, scenarios_ihp)
 
    in if (y > 1)
     then
       let (g2, scenarios_ihps) = if (y > 3)
         then let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] (f64.to_i32 days)            -- 1 year
-          , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i32) -- half rhp
-          ]
+          [ intermediate_holding_period g1[0] (f64.to_i32 days)              -- 1 year
+          , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i32) ] -- half rhp
         else let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] (f64.to_i32 days) ] -- 1 year
+          [ intermediate_holding_period g1[0] (f64.to_i32 days) ]            -- 1 year
       in (join_rng g2,var,vev,mrm,[tuple4 scenarios_rhp] ++ scenarios_ihps)
 
     else (g0,var,vev,mrm,[tuple4 scenarios_rhp])

@@ -43,8 +43,9 @@ let days: f64 = 256.0
 
 -- | Category 2 (Annex II, IV)
 let category2 [n] (t: f64) (v: [n]f64): (f64,f64,i32,[]scenario) =
-  let r: []f64   = returns v
-  let m: moments = moments r
+  let pred_n = n-1
+  let r:[pred_n]f64 = returns v
+  let m = moments r
 
   -- market risk measurements (Annex II)
   let var = cornish_fisher (days*t) m
