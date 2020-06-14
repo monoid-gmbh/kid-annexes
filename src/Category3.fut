@@ -43,10 +43,6 @@ let path_strs [t] (sigma: f64) (sigma_S: f64) (s0: f64) (r: [t]f64): [t]f64 =
 let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
---let measured_moments [n] [l] (p: payoff) (v: [n][l]f64) (y: f64) =
---  let r_obs: []f64 = let f i = p v[:,:i] in iota l |> map f |> returns
---   in (stats.mean r_obs, stats.stddev r_obs, sigma_strs y r_obs)
-
 -- | Category 3 simulations for MRM (Annex II)
 let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
 
@@ -67,7 +63,6 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let y = r64 t/days
 
   -- Measured moments
-  -- TODO: let (m1,sigma,sigma_S) = measured_moments p v y
   let (m1,sigma,sigma_S) = let r_obs = r[0] in (stats.mean r_obs, stats.stddev r_obs, sigma_strs y r_obs)
 
   -- Simulation
