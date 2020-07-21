@@ -21,7 +21,7 @@ let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
 -- | Resample
 let resample [n] [s] (t: i32) (l: i32) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f64) =
   let (gs,ix) = let f = bootstrap_index_vector s t in split_rng l g |> map f |> unzip
-   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in unsafe r[y,i]))
+   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in r[y,i]))
 
 -- | Construct a path starting at s0
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
@@ -89,7 +89,7 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
     let h0 = split_rng 4 h
 
     -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
-    let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> unsafe s[x,:,:i]) |> traverse scenarios_rhp_idxs
+    let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
     let j = t-i
     let (h1,sim): ([]rng, [4][nr_resim][n][j]f64) = resample j nr_resim r |> traverse h0 |> unzip
     let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
