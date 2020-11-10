@@ -42,7 +42,7 @@ let stress (n: f64) ((_,_,_,_,_,_,mu1,mu2): moments) (sigma: f64) (z_alpha: f64)
 let days: f64 = 256.0
 
 -- | Category 2 (Annex II, IV)
-let category2 [n] (t: f64) (v: [n]f64): (f64,f64,i32,[]scenario) =
+let category2 [n] (t: f64) (v: [n]f64): (f64,f64,i64,[]scenario) =
   let pred_n = n-1
   let r:[pred_n]f64 = returns v
   let m = moments r
