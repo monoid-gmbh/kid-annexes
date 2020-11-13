@@ -18,15 +18,16 @@ import "../src/Category2"
 -- ==
 -- entry: test_moments
 -- compiled input @ SX5E.in
--- output { 1258 3027.870319 133007.388283 -15902559.773593 49504041886.439789 364.701780 -0.327834 -0.201733 }
-entry test_moments (v: []f64): (i32, f64, f64, f64, f64, f64, f64, f64) = moments v
+-- output { 1258i64 3027.870319209062 133007.38828307952 -1.590255977359295e7 4.950404188643979e10 364.70177992858703 -0.3278335435110392 -0.20173314791222907 }
+
+entry test_moments (v: []f64): (i64, f64, f64, f64, f64, f64, f64, f64) = moments v
 -- ==
 
 -- ==
 -- entry: test_category2
 -- compiled input @ SX5E.in
--- output { -0.411746 0.199975 4 1 1.384678 1.073437 0.832576 0.335831 }
-entry test_category2 (v: []f64): (f64, f64, i32, i32, f64, f64, f64, f64) =
+-- output { -0.411746 0.199975 4i64 1i64 1.384678 1.073437 0.832576 0.335831 }
+entry test_category2 (v: []f64): (f64, f64, i64, i64, f64, f64, f64, f64) =
   let (var, vev, mrm, sce) = category2 1.0 v
   let (fav, mod, ufav, strs) = sce[0]
    in (var, vev, mrm, length sce, fav, mod, ufav, strs)

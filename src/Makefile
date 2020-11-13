@@ -10,6 +10,7 @@ Category3.c: Prelude.fut Base.fut Category3.fut
 
 pkgs:
 	futhark pkg add github.com/diku-dk/cpprandom
+	futhark pkg add github.com/diku-dk/sorts
 	futhark pkg add github.com/diku-dk/statistics
 	futhark pkg sync
 

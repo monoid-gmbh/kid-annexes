@@ -6,7 +6,7 @@ module stats = mk_statistics f64
 
 -- | Market Risk Measure, MRM (Annex II, 2)
 -- The VaR Equivalent Volatility (VEV) is assigned a market risk category (1-7)
-let market_risk_measure (v:f64): i32 =
+let market_risk_measure (v:f64): i64 =
        if               v < 0.005 then 1
   else if 0.005 <= v && v < 0.05  then 2
   else if 0.05  <= v && v < 0.12  then 3
@@ -15,7 +15,7 @@ let market_risk_measure (v:f64): i32 =
   else if 0.3   <= v && v < 0.8   then 6
   else                                 7
 
-type moments  = (i32,f64,f64,f64,f64,f64,f64,f64)
+type moments  = (i64,f64,f64,f64,f64,f64,f64,f64)
 type scenario = (f64,f64,f64,f64)
 
 -- | Log Returns (Annex II, 22a)
@@ -23,7 +23,7 @@ let returns [n] [m] (v: [n]f64): [m]f64 = map2 (/) (tail v :> [m]f64) (init v :>
 
 -- | sigma for stress scenario (Annex IV, 10)
 let sigma_strs [n] (t: f64) (v: [n]f64): f64 =
-  let rolling (w: i32) (v: [n]f64): []f64 = iota (n-w) |> map (\i -> stats.stddev_pop v[i:i+w])
+  let rolling (w: i64) (v: [n]f64): []f64 = iota (n-w) |> map (\i -> stats.stddev_pop v[i:i+w])
    in if t > 1 then stats.quantile (rolling 63 v) 0.90 -- (Annex IV, 10 a)
                else stats.quantile (rolling 21 v) 0.99 -- (Annex IV, 10 a)
 
@@ -31,7 +31,7 @@ let sigma_strs [n] (t: f64) (v: [n]f64): f64 =
 let moments [t] (v: [t]f64): moments =
 
   -- zeroth and first moment
-  let m0 = f64.i32 t
+  let m0 = f64.i64 t
   let m1 = f64.sum v / m0
 
   -- second to forth moments

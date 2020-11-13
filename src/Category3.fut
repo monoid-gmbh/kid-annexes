@@ -11,21 +11,21 @@
 import "Base"
 
 module stats = mk_statistics f64
-module dist  = uniform_int_distribution i32 minstd_rand
+module dist  = uniform_int_distribution i64 minstd_rand
 
 -- | Bootstrap indices
-let bootstrap_index_vector (s: i32) (t: i32) (g: rng): (rng,[t]i32) =
+let bootstrap_index_vector (s: i64) (t: i64) (g: rng): (rng,[t]i64) =
   let (gs,ys) = let f = dist.rand (0,s-1) in split_rng t g |> map f |> unzip
    in (join_rng gs,ys)
 
 -- | Resample
-let resample [n] [s] (t: i32) (l: i32) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f64) =
+let resample [n] [s] (t: i64) (l: i64) (r: [n][s]f64) (g: rng): (rng,[l][n][t]f64) =
   let (gs,ix) = let f = bootstrap_index_vector s t in split_rng l g |> map f |> unzip
-   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in unsafe r[y,i]))
+   in (join_rng gs, tabulate_3d l n t (\x y z -> let i = ix[x,z] in r[y,i]))
 
 -- | Construct a path starting at s0
 let path [t] (r: [t]f64) (s0: f64) (f: f64 -> f64 -> f64): [t]f64 =
-  let s = cumsum r in tabulate t (\i -> f s[i] (r64 i)) |> map f64.exp |> map (*s0)
+  let s = cumsum r in tabulate t (\i -> f s[i] (f64.i64 i)) |> map f64.exp |> map (*s0)
 
 -- | Returns are corrected with the measured expectation (Annex II, 22c)
 let path_mrm [t] ((_,m1,_,_,_,sigma,_,_): moments) (s0: f64) (r: [t]f64): [t]f64 =
@@ -45,14 +45,14 @@ let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
 -- | Category 3 simulations for MRM (Annex II)
-let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i32,[]scenario) =
+let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
   let s0: [n]f64   = transpose v |> head
   let l' = l-1
   let r : [n][l']f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
-  let nr_sim: i32 = 10000
+  let nr_sim: i64 = 10000
 
   -- Bootstrap returns
   let (g0,s): (rng,[nr_sim][n][t]f64) = resample t nr_sim r g
@@ -61,7 +61,7 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let days: f64 = 256.0
 
   -- RHP in years
-  let y = r64 t/days
+  let y = (f64.i64 t)/days
 
   -- Moments
   let m: [n]moments = map moments r
@@ -75,8 +75,8 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let mrm = market_risk_measure vev
 
   -- Scenarios, full RHP (Annex IV, 11-13)
-  let sT_scen: [nr_sim](f64,i32) = path_scen |> simulate s |> sort_with_index
-  let sT_strs: [nr_sim](f64,i32) = path_strs |> simulate s |> sort_with_index
+  let sT_scen: [nr_sim](f64,i64) = path_scen |> simulate s |> sort_with_index
+  let sT_strs: [nr_sim](f64,i64) = path_strs |> simulate s |> sort_with_index
 
   let (scenarios_rhp, scenarios_rhp_idxs) = unzip
     [ percentile_sorted 10 sT_strs -- TODO: depends on t
@@ -86,11 +86,11 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
 
   -- Scenarios, intermediate holding periods (Annex IV, 24)
   let intermediate_holding_period h i: (rng,scenario) =
-    let nr_resim: i32 = 3333
+    let nr_resim: i64 = 3333
     let h0 = split_rng 4 h
 
     -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
-    let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> unsafe s[x,:,:i]) |> traverse scenarios_rhp_idxs
+    let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
     let j = t-i
     let (h1,sim): ([]rng, [4][nr_resim][n][j]f64) = resample j nr_resim r |> traverse h0 |> unzip
     let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
@@ -106,10 +106,10 @@ let category3 [n] [l] (g: rng) (t: i32) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
     then
       let (g2, scenarios_ihps) = if (y > 3)
         then let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] (f64.to_i32 days)              -- 1 year
-          , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i32) ] -- half rhp
+          [ intermediate_holding_period g1[0] (f64.to_i64 days)              -- 1 year
+          , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i64) ] -- half rhp
         else let g1 = split_rng 2 g0 in unzip
-          [ intermediate_holding_period g1[0] (f64.to_i32 days) ]            -- 1 year
+          [ intermediate_holding_period g1[0] (f64.to_i64 days) ]            -- 1 year
       in (join_rng g2,var,vev,mrm,[tuple4 scenarios_rhp] ++ scenarios_ihps)
 
     else (g0,var,vev,mrm,[tuple4 scenarios_rhp])
