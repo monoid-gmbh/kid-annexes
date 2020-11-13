@@ -16,8 +16,7 @@ let sort = sort_by id
 let sort_with_index [n] (v:[n]f64): [n](f64,i64) = iota n |> zip v |> sort_by fst
 
 -- | Stats
--- let percentile_sorted 'a [l] (p: f64) (x: [l]a): a = let i = p / 100 * l in f64.ceil i |> f64.to_i64 |> \j -> x[j]
-let percentile_sorted 'a [l] (p: f64) (x: [l]a): a = let i = p / 100  in f64.ceil i |> f64.to_i64 |> \j -> x[j]
+let percentile_sorted 'a [l] (p: f64) (x: [l]a): a = let i = p / 100 * (f64.i64 l) in f64.ceil i |> f64.to_i64 |> \j -> x[j]
 let percentile (p: f64) = sort >-> percentile_sorted p
 
 -- | Random
