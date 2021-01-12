@@ -48,8 +48,8 @@ let var_equivalent_volatility (p: f64) (t: f64) =
 let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
   let s0: [n]f64   = transpose v |> head
-  let l' = l-1
-  let r : [n][l']f64 = map returns v
+  let k = l-1
+  let r : [n][k]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
   let nr_sim: i64 = 10000
