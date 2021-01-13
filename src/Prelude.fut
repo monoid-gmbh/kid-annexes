@@ -4,7 +4,7 @@ import "lib/github.com/diku-dk/sorts/radix_sort"
 let not (b: bool): bool = !b
 let fst (a,_) = a
 let snd (_,b) = b
-let cumsum: []f64 -> *[]f64 = scan (+) 0.0
+let cumsum [n] (x: [n]f64): [n]f64 = scan (+) 0.0 x
 let traverse = flip map
 let concat_1 [n] [m1] [m2] [m] (x: [n][m1]f64) (y: [n][m2]f64): [n][m]f64 =
   (transpose x ++ transpose y :> [m][n]f64) |> transpose
