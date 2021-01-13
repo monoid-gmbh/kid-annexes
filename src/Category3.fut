@@ -45,6 +45,28 @@ let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
 -- | Category 3 simulations for MRM (Annex II)
+--
+--  The following shape transformations are performed below, schematically:
+--
+--                               +---+           +
+--                              /   /|          /|
+--                             /   / |         / |
+--   +---+                    /   /  |        /  |
+--   |   |       +---+       +---+   |       +   |
+--   |   |       |   |       |   |   |       |   |          +
+--   |   |       |   |       |   |   |       |   |         /
+--   |   |  -->  |   |  -->  |   |   | -->   |   |  -->   /  -->  +
+--   |   |       |   |       |   |   |       |   |       /
+--   |   |       |   |       |   |   |       |   |      +
+--   |   |       |   |       |   |   +       |   +
+--   +---+       +---+       |   |  /        |  /
+--                           |   | /         | /
+--                           |   |/          |/
+--                           +---+           +
+--
+--   v:          r:
+--   [n,l]       [n,k]       [n,t,u]         [t,u]      [u]       1
+--
 let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
   -- Initial values
@@ -55,10 +77,10 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let r: [n][k]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
-  let nr_sim: i64 = 10000
+  let u: i64 = 10000
 
   -- Bootstrap returns
-  let (g0,s): (rng,[nr_sim][n][t]f64) = resample t nr_sim r g
+  let (g0,s): (rng,[u][n][t]f64) = resample t u r g
 
   -- Day count convention
   let days: f64 = 256.0
@@ -78,8 +100,8 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let mrm = market_risk_measure vev
 
   -- Scenarios, full RHP (Annex IV, 11-13)
-  let sT_scen: [nr_sim](f64,i64) = path_scen |> simulate s |> sort_with_index
-  let sT_strs: [nr_sim](f64,i64) = path_strs |> simulate s |> sort_with_index
+  let sT_scen: [u](f64,i64) = path_scen |> simulate s |> sort_with_index
+  let sT_strs: [u](f64,i64) = path_strs |> simulate s |> sort_with_index
 
   let (scenarios_rhp, scenarios_rhp_idxs) = unzip
     [ percentile_sorted 10 sT_strs -- TODO: depends on t
