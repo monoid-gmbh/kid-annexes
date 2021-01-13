@@ -50,7 +50,7 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let k = l-1
   let s0: [n]f64 = transpose v |> head
 
-  -- Calculate Log Returns
+  -- Calculate log returns
   let r: [n][k]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
