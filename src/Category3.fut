@@ -48,60 +48,60 @@ let var_equivalent_volatility (p: f64) (t: f64) =
 --
 --  The following shape transformations are performed below, schematically:
 --
---                               +---+           +
---                              /   /|          /|
---                             /   / |         / |
---   +---+                    /   /  |        /  |
---   |   |       +---+       +---+   |       +   |
---   |   |       |   |       |   |   |       |   |          +
---   |   |       |   |       |   |   |       |   |         /
---   |   |  -->  |   |  -->  |   |   | -->   |   |  -->   /  -->  +
---   |   |       |   |       |   |   |       |   |       /
---   |   |       |   |       |   |   |       |   |      +
---   |   |       |   |       |   |   +       |   +
---   +---+       +---+       |   |  /        |  /
---                           |   | /         | /
---                           |   |/          |/
---                           +---+           +
+--                                 +---+            +
+--                                /   /|           /|
+--                               /   / |          / |
+--   +---+                      /   /  |         /  |
+--   |   |        +---+        +---+   |        +   |
+--   |   |        |   |        |   |   |        |   |           +
+--   |   |   1    |   |   2    |   |   |  3     |   |   4      /  5
+--   |   |  --->  |   |  --->  |   |   | --->   |   |  --->   /  --->  +
+--   |   |        |   |        |   |   |        |   |        /
+--   |   |        |   |        |   |   |        |   |       +
+--   |   |        |   |        |   |   +        |   +
+--   +---+        +---+        |   |  /         |  /
+--                             |   | /          | /
+--                             |   |/           |/
+--                             +---+            +
 --
---   v:          r:
---   [n,l]       [n,k]       [n,t,u]         [t,u]      [u]       1
+--   v:           r:
+--   [n,l]        [n,k]        [n,t,u]          [t,u]       [u]         1
 --
 let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
   -- Initial values
   let s0: [n]f64 = transpose v |> head
 
-  -- Calculate log returns
+  -- Calculate log returns - step 1
   let k = l-1
   let r: [n][k]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
   let u: i64 = 10000
 
-  -- Bootstrap returns
+  -- Bootstrap returns - step 2
   let (g0,s): (rng,[u][n][t]f64) = resample t u r g
 
   -- Day count convention
   let days: f64 = 256.0
 
   -- RHP in years
-  let y = (f64.i64 t)/days
+  let y: f64 = (f64.i64 t)/days
 
   -- Moments
   let m: [n]moments = map moments r
 
-  -- Simulation
-  let simulate s f = map3 f m s0 >-> p |> traverse s
+  -- Payoff
+  let payoff f: ([n][t]f64 -> f64) = map3 f m s0 >-> p
 
   -- Market risk measurements (Annex II)
-  let var = path_mrm |> simulate s |> percentile 2.5
-  let vev = var_equivalent_volatility var y
-  let mrm = market_risk_measure vev
+  let var: f64 = payoff path_mrm |> traverse s |> percentile 2.5 -- step 3,4,5
+  let vev: f64 = var_equivalent_volatility var y
+  let mrm: i64 = market_risk_measure vev
 
   -- Scenarios, full RHP (Annex IV, 11-13)
-  let sT_scen: [u](f64,i64) = path_scen |> simulate s |> sort_with_index
-  let sT_strs: [u](f64,i64) = path_strs |> simulate s |> sort_with_index
+  let sT_scen: [u](f64,i64) = payoff path_scen |> traverse s |> sort_with_index
+  let sT_strs: [u](f64,i64) = payoff path_strs |> traverse s |> sort_with_index
 
   let (scenarios_rhp, scenarios_rhp_idxs) = unzip
     [ percentile_sorted 10 sT_strs -- TODO: depends on t
@@ -121,10 +121,10 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
     let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
 
     let scenarios_ihp = tuple4
-      [ path_strs |> simulate xs[0] |> percentile 10 -- TODO: depends on t
-      , path_scen |> simulate xs[1] |> percentile 10
-      , path_scen |> simulate xs[2] |> percentile 50
-      , path_scen |> simulate xs[3] |> percentile 90 ]
+      [ payoff path_strs |> traverse xs[0] |> percentile 10 -- TODO: depends on t
+      , payoff path_scen |> traverse xs[1] |> percentile 10
+      , payoff path_scen |> traverse xs[2] |> percentile 50
+      , payoff path_scen |> traverse xs[3] |> percentile 90 ]
      in (join_rng h1, scenarios_ihp)
 
    in if (y > 1)
