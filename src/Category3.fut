@@ -47,10 +47,11 @@ let var_equivalent_volatility (p: f64) (t: f64) =
 -- | Category 3 simulations for MRM (Annex II)
 let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
-  let k = l-1
+  -- Initial values
   let s0: [n]f64 = transpose v |> head
 
   -- Calculate log returns
+  let k = l-1
   let r: [n][k]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
