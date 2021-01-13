@@ -18,19 +18,19 @@ let cornish_fisher (n: f64) ((_,_,_,_,_,sigma,mu1,mu2): moments): f64 =
 let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*p)-1.96)/(f64.sqrt t)
 
--- | unfavourable scenario (Annex IV, 9a)
+-- | Unfavourable scenario (Annex IV, 9a)
 let unfavourable (n: f64) ((_,m1,_,_,_,sigma,mu1,mu2): moments): f64 =
   f64.exp(m1*n + sigma*f64.sqrt(n)*(-1.28 + 0.107*mu1/f64.sqrt(n) + 0.0724*mu2/n - 0.0611*(mu1**2)/n) - 0.5*(sigma**2)*n)
 
--- | moderate scenario (Annex IV, 9b)
+-- | Moderate scenario (Annex IV, 9b)
 let moderate (n: f64) ((_,m1,_,_,_,sigma,mu1,_): moments): f64 =
   f64.exp(m1*n + sigma*mu1/6 - 0.5*(sigma**2)*n)
 
--- | favourable scenario (Annex IV, 9c)
+-- | Favourable scenario (Annex IV, 9c)
 let favourable (n: f64) ((_,m1,_,_,_,sigma,mu1,mu2): moments): f64 =
   f64.exp(m1*n + sigma*f64.sqrt(n)*(1.28 + 0.107*mu1/f64.sqrt(n) - 0.0724*mu2/n + 0.0611*(mu1**2)/n) - 0.5*(sigma**2)*n)
 
--- | stress scenario (Annex IV, 11)
+-- | Stress scenario (Annex IV, 11)
 let stress (n: f64) ((_,_,_,_,_,_,mu1,mu2): moments) (sigma: f64) (z_alpha: f64): f64 = f64.exp(
   sigma*f64.sqrt(n)*(
      z_alpha + ((  z_alpha**2 - 1        )/6 )*mu1   /f64.sqrt(n)
@@ -47,12 +47,12 @@ let category2 [n] (t: f64) (v: [n]f64): (f64,f64,i64,[]scenario) =
   let r:[pred_n]f64 = returns v
   let m = moments r
 
-  -- market risk measurements (Annex II)
+  -- Market risk measurements (Annex II)
   let var = cornish_fisher (days*t) m
   let vev = var_equivalent_volatility var t
   let mrm = market_risk_measure vev
 
-  -- scenarios (Annex IV)
+  -- Scenarios (Annex IV)
   let s = sigma_strs t r -- stressed volatility
   let z_alpha = if t > 1 then -1.644853627 -- alpha 5% (Annex IV, 11)
                          else -2.326347874 -- alpha 1% (Annex IV, 11)
