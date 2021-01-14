@@ -26,4 +26,4 @@ libkidcat3.so: Category3.c
 	gcc Category3.c -o libkidcat3.so -fPIC -shared
 
 clean:
-	rm -f *.c *.h *.py *.o *.so
+	rm -f *.c *.h *.py *.o *.so *.gz
