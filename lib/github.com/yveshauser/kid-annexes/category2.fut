@@ -8,7 +8,7 @@
 --    * Performance scenarios for intermediate holding periods
 --
 
-import "Base"
+import "base"
 
 -- | VaR measure in return space, Cornish-Fisher expansion (Annex II, 12)
 let cornish_fisher (n: f64) ((_,_,_,_,_,sigma,mu1,mu2): moments): f64 =
