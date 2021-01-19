@@ -1,5 +1,5 @@
-import "lib/github.com/diku-dk/cpprandom/random"
-import "lib/github.com/diku-dk/sorts/radix_sort"
+import "../../diku-dk/cpprandom/random"
+import "../../diku-dk/sorts/radix_sort"
 
 let not (b: bool): bool = !b
 let fst (a,_) = a
