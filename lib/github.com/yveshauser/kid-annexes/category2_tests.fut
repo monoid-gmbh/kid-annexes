@@ -1,4 +1,4 @@
-import "../src/Category2"
+import "category2"
 
 --
 -- Example from the document, page 8:

@@ -1,4 +1,4 @@
-import "../src/Category3"
+import "category3"
 
 -- ==
 -- entry: test_trivial
