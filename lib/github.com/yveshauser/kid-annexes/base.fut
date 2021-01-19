@@ -1,6 +1,5 @@
-import "lib/github.com/diku-dk/statistics/statistics"
-
-import "Prelude"
+import "../../diku-dk/statistics/statistics"
+import "prelude"
 
 module stats = mk_statistics f64
 
