@@ -10,7 +10,6 @@ cabal-dev
 *.dyn_hi
 *.c
 *.h
-*.pkg
 .hpc
 .hsenv
 .cabal-sandbox/
