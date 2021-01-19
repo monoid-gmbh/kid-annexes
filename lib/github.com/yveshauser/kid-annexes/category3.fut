@@ -8,7 +8,7 @@
 --    * Performance scenarios for intermediate holding periods
 --
 
-import "Base"
+import "base"
 
 module stats = mk_statistics f64
 module dist  = uniform_int_distribution i64 minstd_rand
