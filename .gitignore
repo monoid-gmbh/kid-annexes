@@ -1,0 +1,6 @@
+*.so
+*.o
+*.hi
+*.c
+*.h
+lib/github.com/diku-dk/*
