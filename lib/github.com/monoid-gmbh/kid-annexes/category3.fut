@@ -16,7 +16,7 @@ module stats = mk_statistics f64
 module dist  = uniform_int_distribution i64 minstd_rand
 
 -- | Bootstrap indices
-let bootstrap_index_vector (s: i64) (t: i64) (g: rng): (rng,[t]i64) =
+def bootstrap_index_vector (s: i64) (t: i64) (g: rng): (rng,[t]i64) =
   let (gs,ys) = let f = dist.rand (0,s-1) in split_rng t g |> map f |> unzip
    in (join_rng gs,ys)
 
@@ -75,8 +75,7 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let s0: [n]f64 = transpose v |> head
 
   -- Calculate log returns - step 1
-  let k = l-1
-  let r: [n][k]f64 = map returns v
+  let r: [n][l-1]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
   let u: i64 = 10000

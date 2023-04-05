@@ -43,8 +43,7 @@ let days: f64 = 256.0
 
 -- | Category 2 (Annex II, IV)
 let category2 [n] (t: f64) (v: [n]f64): (f64,f64,i64,[]scenario) =
-  let k = n-1
-  let r:[k]f64 = returns v
+  let r:[n-1]f64 = returns v
   let m = moments r
 
   -- Market risk measurements (Annex II)

@@ -19,7 +19,7 @@ type moments  = (f64,f64,f64,f64,f64,f64,f64)
 type scenario = [4]f64
 
 -- | Log Returns (Annex II, 22a)
-let returns [n] [m] (v: [n]f64): [m]f64 = map2 (/) (tail v :> [m]f64) (init v :> [m]f64) |> map f64.log
+let returns [n] (v: [n]f64): [n-1]f64 = map2 (/) (tail v) (init v) |> map f64.log
 
 -- | sigma for stress scenario (Annex IV, 10)
 let sigma_strs [n] (t: f64) (v: [n]f64): f64 =
