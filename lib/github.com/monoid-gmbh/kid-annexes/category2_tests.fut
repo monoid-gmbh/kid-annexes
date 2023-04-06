@@ -1,3 +1,6 @@
+-- | ignore
+
+import "base"
 import "category2"
 
 --

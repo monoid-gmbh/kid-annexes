@@ -1,4 +1,4 @@
--- Category 2 (Annex II, IV)
+-- | Category 2 (Annex II, IV)
 --
 --    Linear products, calculation of
 --

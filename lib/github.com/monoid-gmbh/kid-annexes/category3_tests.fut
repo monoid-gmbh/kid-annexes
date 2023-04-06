@@ -1,3 +1,6 @@
+-- | ignore
+
+import "../../diku-dk/cpprandom/random"
 import "category3"
 
 -- ==

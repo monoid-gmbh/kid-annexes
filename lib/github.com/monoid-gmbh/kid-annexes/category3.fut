@@ -1,4 +1,4 @@
--- Category 3 (Annex II, IV)
+-- | Category 3 (Annex II, IV)
 --
 --    Non-linear products, calculation of
 --
@@ -6,7 +6,6 @@
 --    * VEV (VaR Equivalent Volatility)
 --    * Performance scenarios
 --    * Performance scenarios for intermediate holding periods
---
 
 import "base"
 import "../../diku-dk/cpprandom/random"
@@ -47,28 +46,6 @@ let var_equivalent_volatility (p: f64) (t: f64) =
   (f64.sqrt(3.842-2*f64.log(p))-1.96)/(f64.sqrt t)
 
 -- | Category 3 simulations for MRM (Annex II)
---
---  The following shape transformations are performed below, schematically:
---
---                                 +---+            +
---                                /   /|           /|
---                               /   / |          / |
---   +---+                      /   /  |         /  |
---   |   |        +---+        +---+   |        +   |
---   |   |        |   |        |   |   |        |   |           +
---   |   |   1    |   |   2    |   |   |  3     |   |   4      /  5
---   |   |  --->  |   |  --->  |   |   | --->   |   |  --->   /  --->  +
---   |   |        |   |        |   |   |        |   |        /
---   |   |        |   |        |   |   |        |   |       +
---   |   |        |   |        |   |   +        |   +
---   +---+        +---+        |   |  /         |  /
---                             |   | /          | /
---                             |   |/           |/
---                             +---+            +
---
---   v:           r:
---   [n,l]        [n,k]        [n,t,u]          [t,u]       [u]         1
---
 let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (rng,f64,f64,i64,[]scenario) =
 
   -- Initial values

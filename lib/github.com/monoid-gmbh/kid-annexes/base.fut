@@ -1,3 +1,5 @@
+-- | ignore
+
 import "../../diku-dk/cpprandom/random"
 import "../../diku-dk/sorts/radix_sort"
 import "../../diku-dk/statistics/statistics"
