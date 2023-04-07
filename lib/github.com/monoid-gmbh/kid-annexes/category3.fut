@@ -51,13 +51,13 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   -- Initial values
   let s0: [n]f64 = transpose v |> head
 
-  -- Calculate log returns - step 1
+  -- Calculate log returns
   let r: [n][l-1]f64 = map returns v
 
   -- Number of simulations (Annex II, 19)
   let u: i64 = 10000
 
-  -- Bootstrap returns - step 2
+  -- Bootstrap returns
   let (g0,s): (rng,[u][n][t]f64) = resample t u r g
 
   -- Day count convention
@@ -94,8 +94,7 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
 
     -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
     let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
-    let j = t-i
-    let (h1,sim): ([]rng, [4][nr_resim][n][j]f64) = resample j nr_resim r |> traverse h0 |> unzip
+    let (h1,sim): ([]rng, [4][nr_resim][n][t-i]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
     let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
 
     let scenarios_ihp =

@@ -21,7 +21,8 @@ type moments  = (f64,f64,f64,f64,f64,f64,f64)
 type scenario = [4]f64
 
 -- | Log Returns (Annex II, 22a)
-let returns [n] (v: [n]f64): [n-1]f64 = map2 (/) (tail v) (init v) |> map f64.log
+let returns [n] (v: [n]f64): [n-1]f64 =
+  map2 (/) (tail v) (init v) |> map f64.log
 
 -- | sigma for stress scenario (Annex IV, 10)
 let sigma_strs [n] (t: f64) (v: [n]f64): f64 =
@@ -51,13 +52,12 @@ let moments [t] (v: [t]f64): moments =
    in (m1,m2,m3,m4,sigma,mu1,mu2)
 
 -- | Helpers
-let not (b: bool): bool = !b
 let fst (a,_) = a
 let snd (_,b) = b
 let cumsum [n] (x: [n]f64): [n]f64 = scan (+) 0.0 x
 let traverse = flip map
-let concat_1 [n] [m1] [m2] [m] (x: [n][m1]f64) (y: [n][m2]f64): [n][m]f64 =
-  (transpose x ++ transpose y :> [m][n]f64) |> transpose
+let concat_1 [n] [m1] [m2] (x: [n][m1]f64) (y: [n][m2]f64): [n][m1+m2]f64 =
+  (transpose x ++ transpose y) |> transpose
 
 -- | Sort
 let sort_by f = radix_sort_float_by_key f f64.num_bits f64.get_bit
@@ -65,7 +65,8 @@ let sort = sort_by id
 let sort_with_index [n] (v:[n]f64): [n](f64,i64) = iota n |> zip v |> sort_by fst
 
 -- | Stats
-let percentile_sorted 'a [l] (p: f64) (x: [l]a): a = let i = p / 100 * (f64.i64 l) in f64.ceil i |> f64.to_i64 |> \j -> x[j]
+let percentile_sorted 'a [l] (p: f64) (x: [l]a): a =
+  let i = p / 100 * (f64.i64 l) in f64.ceil i |> f64.to_i64 |> \j -> x[j]
 let percentile (p: f64) = sort >-> percentile_sorted p
 
 -- | Random
