@@ -31,12 +31,13 @@ let favourable (n: f64) ((m1,_,_,_,sigma,mu1,mu2): moments): f64 =
   f64.exp(m1*n + sigma*f64.sqrt(n)*(1.28 + 0.107*mu1/f64.sqrt(n) - 0.0724*mu2/n + 0.0611*(mu1**2)/n) - 0.5*(sigma**2)*n)
 
 -- | Stress scenario (Annex IV, 11)
-let stress (n: f64) ((_,_,_,_,_,mu1,mu2): moments) (sigma: f64) (z_alpha: f64): f64 = f64.exp(
-  sigma*f64.sqrt(n)*(
-     z_alpha + ((  z_alpha**2 - 1        )/6 )*mu1   /f64.sqrt(n)
+let stress (n: f64) ((_,_,_,_,_,mu1,mu2): moments) (sigma: f64) (z_alpha: f64): f64 =
+  f64.exp(sigma*f64.sqrt(n)*
+    (z_alpha + ((  z_alpha**2 - 1        )/6 )*mu1   /f64.sqrt(n)
              + ((  z_alpha**3 - 3*z_alpha)/24)*mu2   /n
              - ((2*z_alpha**3 - 5*z_alpha)/36)*mu1**2/n
-  ) - 0.5*sigma**2*n)
+    ) - 0.5*sigma**2*n
+  )
 
 -- | Day count convention
 let days: f64 = 256.0
