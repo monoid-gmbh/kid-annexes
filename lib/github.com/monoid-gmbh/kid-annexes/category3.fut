@@ -104,15 +104,18 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
       , payoff path_scen |> traverse xs[3] |> percentile 90 ]
      in (join_rng h1, scenarios_ihp)
 
-   in if (y > 1) then
-        if (y > 3) then
-          let g1 = split_rng 2 g0
-          let (g2, scenarios_ihps) = unzip
-            [ intermediate_holding_period g1[0] (f64.to_i64 days)              -- 1 year
-            , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i64) ] -- half rhp
-          in (join_rng g2,var,vev,mrm,[scenarios_rhp] ++ scenarios_ihps)
+   in -- FIXME: introduction of size types broke intermediate holding periods
+      --
+      -- if (y > 1) then
+      --   if (y > 3) then
+      --     let g1 = split_rng 2 g0
+      --     let (g2, scenarios_ihps) = unzip
+      --       [ intermediate_holding_period g1[0] (f64.to_i64 days)              -- 1 year
+      --       , intermediate_holding_period g1[1] (f64.ceil y/2 |> f64.to_i64) ] -- half rhp
+      --     in (join_rng g2,var,vev,mrm,[scenarios_rhp] ++ scenarios_ihps)
 
-        else let (g1, scenarios_ihps) = intermediate_holding_period g0 (f64.to_i64 days) -- 1 year
-          in (g1,var,vev,mrm,[scenarios_rhp] ++ [scenarios_ihps])
+      --   else let (g1, scenarios_ihps) = intermediate_holding_period g0 (f64.to_i64 days) -- 1 year
+      --     in (g1,var,vev,mrm,[scenarios_rhp] ++ [scenarios_ihps])
 
-      else (g0,var,vev,mrm,[scenarios_rhp])
+      -- else
+      (g0,var,vev,mrm,[scenarios_rhp])
