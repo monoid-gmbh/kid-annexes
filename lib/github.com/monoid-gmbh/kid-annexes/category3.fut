@@ -73,7 +73,7 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
   let payoff f: ([n][t]f64 -> f64) = map3 f m s0 >-> p
 
   -- Market risk measurements (Annex II)
-  let var: f64 = payoff path_mrm |> traverse s |> percentile 2.5 -- step 3,4,5
+  let var: f64 = payoff path_mrm |> traverse s |> percentile 2.5
   let vev: f64 = var_equivalent_volatility var y
   let mrm: i64 = market_risk_measure vev
 
@@ -94,8 +94,8 @@ let category3 [n] [l] (g: rng) (t: i64) (p: [n][t]f64 -> f64) (v: [n][l]f64): (r
 
     -- Get seed and resample for each scenario. TODO: choose "good" paths as index for seed
     let seed: [4][nr_resim][n][i]f64 = replicate nr_resim <-< (\x -> s[x,:,:i]) |> traverse scenarios_rhp_idxs
-    let (h1,sim): ([]rng, [4][nr_resim][n][t-i]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
-    let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim
+    let (h1,sim): ([4]rng, [4][nr_resim][n][t-i]f64) = resample (t-i) nr_resim r |> traverse h0 |> unzip
+    let xs: [4][nr_resim][n][t]f64 = let f = map2 concat_1 in map2 f seed sim :> [4][nr_resim][n][t]f64
 
     let scenarios_ihp =
       [ payoff path_strs |> traverse xs[0] |> percentile 10 -- TODO: depends on t
