@@ -20,6 +20,9 @@ let market_risk_measure (v:f64): i64 =
 type moments  = (f64,f64,f64,f64,f64,f64,f64)
 type scenario = [4]f64
 
+-- | Empty scenario array
+let empty: scenario = [f64.nan,f64.nan,f64.nan,f64.nan]
+
 -- | Log Returns (Annex II, 22a)
 let returns [n] (v: [n]f64): [n-1]f64 =
   map2 (/) (tail v) (init v) |> map f64.log
